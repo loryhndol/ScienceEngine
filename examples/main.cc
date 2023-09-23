@@ -1,18 +1,18 @@
 #include <arch/Backend.h>
-#include <math/Vector.h>
+#include <graph/MathTypes.h>
 
 #include <fstream>
 #include <iostream>
 
 int main() {
   // write a computation graph
-  auto a = Vector("a", {3});
-  auto b = Vector("b", {3});
+  auto a = Vector("a", 3);
+  auto b = Vector("b", 3);
 
-  auto c = a + b;
+  auto c = a + b + static_cast<double>(0.5);
 
-  auto d = Vec3d("d");
-  auto e = c + d;
+  auto d = Vector("d", 3);
+  auto e = c + d + a;
 
   // print the graph
   std::string message = "{";
@@ -38,6 +38,8 @@ int main() {
   CPU instance;
   instance.evaluate(e, data);
   std::cout << "Result: " << e.toString() << std::endl;
+
+  deleteGraph(e);
 
   return 0;
 }

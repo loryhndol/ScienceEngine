@@ -1,12 +1,9 @@
 #include "graph/Compute.h"
 
 Compute::Compute(std::string name, Shape shape)
-    : _op(Operators::Value),
-      _val(nullptr),
-      _name(name),
-      _shape(shape),
-      _left(nullptr),
-      _right(nullptr) {}
+    : _op(Operators::Value), _val(nullptr), _name(name), _shape(shape) {}
+
+Compute::~Compute() {}
 
 Operators Compute::getOp() const { return _op; }
 
@@ -14,21 +11,43 @@ void Compute::setOp(Operators op) { this->_op = op; }
 
 std::string Compute::getName() { return _name; }
 
-Compute operator+(Compute& lhs, Compute& rhs) {
-  Compute node("+", lhs._shape);
-  node._left = &lhs;
-  node._right = &rhs;
-  node._op = Operators::Plus;
-  return node;
+std::list<Compute>& Compute::getDependencies() { return _dependencies; }
+
+Compute& operator+(Compute& lhs, Compute& rhs) {
+  rhs.setOp(Operators::Plus);
+  lhs._dependencies.push_back(rhs);
+  return lhs;
 }
 
-Compute* Compute::getLeft() { return _left; }
+Compute& operator+(Compute& lhs, double rhs) {
+  Compute scalar("scalar", {1});
+  scalar.setVal(new Double({rhs}), Precision::FP64);
+  scalar.setOp(Operators::Plus);
+  lhs._dependencies.push_back(scalar);
+  return lhs;
+}
 
-Compute* Compute::getRight() { return _right; }
+void Compute::setVal(Value* val, Precision prec) {
+  if (_val == nullptr) {
+    switch (prec) {
+      case Precision::FP64: {
+        Double d = *dynamic_cast<Double*>(val);
+        _val = new Double(d);
+        break;
+      }
 
-void Compute::setVal(Value* val) { _val = val; }
+      default:
+        break;
+    }
+    return;
+  } else {
+    _val = val;
+  }
+}
 
 Value* Compute::getVal() { return _val; }
+
+Shape Compute::getShape() { return _shape; }
 
 std::string Compute::toString() {
   std::string str = "";
@@ -64,7 +83,7 @@ void Compute::print(Compute* node, std::string& message) {
   }
 
   // is leaf
-  if (node->_left == nullptr && node->_right == nullptr) {
+  if (node->getOp() == Operators::Value) {
     message += "\"shape\": ";
     std::stringstream ss;
     for (int i = 0; i < node->_shape.size(); i++) {
@@ -79,15 +98,22 @@ void Compute::print(Compute* node, std::string& message) {
   }
 
   message += "\"" + node->_name + "\"" + ":{";
-  if (node->_left != nullptr) {
-    message += "\"left\":{";
-    print(node->_left, message);
-    message += "},";
+  std::list<Compute> dependencies = node->getDependencies();
+
+  if (dependencies.size() > 0) {
+    message += "\"dependencies\":[";
+    for (auto it = dependencies.begin(); it != dependencies.end(); it++) {
+      message += "\"" + (*it)._name + "\",";
+    }
   }
-  if (node->_right != nullptr) {
-    message += "\"right\":{";
-    print(node->_right, message);
-    message += "}";
-  }
+
   message += "}";
+}
+
+void deleteGraph(Compute& node) {
+  for (auto it = node.getDependencies().begin();
+       it != node.getDependencies().end(); it++) {
+    deleteGraph(*it);
+  }
+  delete node.getVal();
 }

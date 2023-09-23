@@ -1,6 +1,7 @@
 #ifndef GRAPH_COMPUTE_H
 #define GRAPH_COMPUTE_H
 
+#include <list>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -17,9 +18,7 @@ class Compute {
   Shape _shape;
   Operators _op;
 
-  // dependencies
-  Compute* _left;
-  Compute* _right;
+  std::list<Compute> _dependencies;
 
   // value
   Value* _val;
@@ -28,18 +27,22 @@ class Compute {
   // constructor
   Compute(std::string name, Shape shape);
 
+  // destructor
+  ~Compute();
+
   // getters
   std::string getName();
   Operators getOp() const;
-  Compute* getLeft();
-  Compute* getRight();
+  std::list<Compute>& getDependencies();
   Value* getVal();
+  Shape getShape();
 
   // setters
   void setOp(Operators op);
-  void setVal(Value* val);
+  void setVal(Value* val, Precision prec);
 
-  friend Compute operator+(Compute& lhs, Compute& rhs);
+  friend Compute& operator+(Compute& lhs, Compute& rhs);
+  friend Compute& operator+(Compute& lhs, double rhs);
 
   // print the tree
   static void print(Compute* node, std::string& message);
@@ -47,5 +50,7 @@ class Compute {
   // print the node
   std::string toString();
 };
+
+void deleteGraph(Compute& node);
 
 #endif

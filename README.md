@@ -14,3 +14,4 @@ cmake -B build -DBUILD_EXAMPLES=ON -DBUILD_TESTS=OFF
 
 ## TODO
 - [ ] Carefully deal with all the pointers, especially at finalization.
+- [ ] JSON for computation graph
